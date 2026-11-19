@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reciclagem Relâmpago</title>
+<style>
+:root{color-scheme:dark;--ink:#f4edff;--muted:#c4b5df;--pink:#ff65d2;--mint:#75ffe1;--line:#49337d}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;color:var(--ink);font:16px system-ui,sans-serif;background:radial-gradient(ellipse at 50% 0%,#38166b 0%,#15113b 45%,#090917 85%);position:relative}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle,#b993ff80 1px,transparent 2px) 0 0/89px 73px,radial-gradient(circle,#63e7ef50 1px,transparent 2px) 37px 18px/123px 109px;mask-image:linear-gradient(#000,transparent 85%)}
+main{position:relative;width:min(940px,calc(100% - 28px));margin:auto;padding:28px 0 25px}
+header{text-align:center;margin-bottom:24px}
+h1{font-family:Impact,'Arial Black',system-ui,sans-serif;line-height:.89;font-style:italic;text-transform:uppercase;letter-spacing:-.035em;margin:0;font-size:clamp(39px,8vw,77px);transform:rotate(-4deg);filter:drop-shadow(3px 5px #42136e) drop-shadow(0 0 17px #c845d568)}
+h1 span{display:block;color:#e8d7ff;-webkit-text-stroke:1px #f4cfff}
+h1 strong{display:block;color:#ffab50;-webkit-text-stroke:1px #ffe5a6}
+header p{margin:23px 0 0;color:var(--muted)}
+.machine{padding:16px;border:1px solid #8756ad;border-radius:20px;background:#11102af2;box-shadow:0 0 0 5px #291742,0 0 36px #a64aeb35,inset 0 1px #d48bee77}
+.hud{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;text-align:center}
+.hud div{padding:8px 3px;background:#191432;border-radius:8px;border:1px solid var(--line)}
+.hud span{display:block;color:var(--muted);font:700 .875rem monospace;text-transform:uppercase}
+.hud b{font:700 clamp(24px,5vw,34px) monospace;color:var(--mint);font-variant-numeric:tabular-nums}
+#time{color:#ffcb7a}
+.screen{position:relative;text-align:center;min-height:245px;display:grid;place-content:center;justify-items:center;padding:15px 10px 9px;overflow:hidden;border:1px solid #6553a3;border-radius:13px;background:repeating-linear-gradient(transparent 0 3px,#09081944 4px 5px),radial-gradient(ellipse at center,#302364,#11102b 78%)}
+.screen::before{content:"";position:absolute;width:175px;height:150px;top:14px;border:1px solid #987cf262;transform:rotate(13deg) skew(-15deg);pointer-events:none}
+canvas{position:relative;width:120px;height:115px;image-rendering:pixelated}
+h2{position:relative;margin:1px 0 0;font-size:clamp(23px,5vw,34px);line-height:1.12}
+#feedback{position:relative;min-height:2.65em;margin:7px 0 2px;color:var(--muted);font-weight:600}
+#feedback.good{color:var(--mint)}#feedback.bad{color:#ff9fcf}
+.progress{height:7px;background:#252043;border-radius:4px;overflow:hidden;margin:12px 0}
+#bar{height:100%;background:linear-gradient(90deg,#ae66ff,var(--pink),#ffd184);width:100%;transform-origin:left}
+.bins{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+button{font:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid white;outline-offset:3px}
+.bin{--c:#78ccff;--bg:#122344;position:relative;display:grid;justify-items:center;gap:5px;min-height:94px;padding:10px 2px 8px;border:1px solid var(--c);border-radius:9px;background:var(--bg);color:var(--c);font-weight:800;box-shadow:inset 0 -4px #0005}
+.bin:disabled{opacity:.63;cursor:default}
+.bin:not(:disabled):hover,.bin.hit{background:var(--c);color:var(--bg)}
+.bin kbd{position:absolute;top:6px;left:8px;font:700 13px monospace;opacity:.85}
+.bin i{display:grid;place-content:center;margin-top:5px;width:28px;height:34px;border:2px solid currentColor;border-radius:0 0 5px 5px;font:normal 17px system-ui}
+.bin i::before{content:"";width:32px;height:3px;position:absolute;top:11px;left:calc(50% - 16px);background:currentColor}
+.bin:nth-child(2){--c:#ff83a4;--bg:#35162f}.bin:nth-child(3){--c:#83fbb0;--bg:#102f2c}.bin:nth-child(4){--c:#ffdb75;--bg:#33281e}
+.actions{text-align:center;padding-top:14px}
+#start{min-width:175px;border:1px solid #ffcaef;border-radius:8px;background:#ff7bda;color:#260e35;box-shadow:0 4px #8b3279,0 0 18px #fd59ce66;padding:9px 21px;font-weight:900}
+#start[hidden]{display:none}
+@media(max-width:480px){main{padding-top:24px}.machine{padding:10px}.bins{gap:5px}.bin{font-size:.875rem}.bin kbd{left:4px}.screen{min-height:220px}header p{font-size:.925rem}}
+</style>
+</head>
+<body>
+<main>
+<header><h1><span>Reciclagem</span><strong>Relâmpago</strong></h1><p>Separe o máximo de resíduos em 45 segundos.</p></header>
+<section class="machine" aria-label="Fliperama">
+<div class="hud"><div><span>Pontos</span><b id="score">00</b></div><div><span>Tempo</span><b id="time">00:45</b></div><div><span>Recorde</span><b id="best">00</b></div></div>
+<div class="screen">
+<canvas id="sprite" width="48" height="46" aria-hidden="true"></canvas>
+<h2 id="item" aria-live="polite">Qual é a lixeira certa?</h2>
+<p id="feedback" role="status">Toque em uma lixeira ou use as teclas 1 a 4.</p>
+</div>
+<div class="progress" aria-hidden="true"><div id="bar"></div></div>
+<div class="bins" aria-label="Lixeiras">
+<button class="bin" disabled><kbd>1</kbd><i aria-hidden="true">♻</i>Papel</button>
+<button class="bin" disabled><kbd>2</kbd><i aria-hidden="true">♻</i>Plástico</button>
+<button class="bin" disabled><kbd>3</kbd><i aria-hidden="true">♻</i>Vidro</button>
+<button class="bin" disabled><kbd>4</kbd><i aria-hidden="true">♻</i>Metal</button>
+</div>
+<div class="actions"><button id="start">Jogar</button></div>
+</section>
+</main>
+<script>
+const items = [
+ ['Folha de caderno',0,'sheet'], ['Jornal',0,'sheet'], ['Caixa de papelão',0,'box'],
+ ['Garrafa PET',1,'bottle'], ['Pote de iogurte vazio',1,'cup'], ['Frasco de xampu vazio',1,'bottle'],
+ ['Garrafa de vidro',2,'bottle'], ['Pote de geleia vazio',2,'jar'], ['Frasco de perfume de vidro',2,'jar'],
+ ['Lata de refrigerante',3,'can'], ['Lata de milho vazia',3,'can'], ['Papel-alumínio limpo',3,'foil']
+];
+const categories = ['papel', 'plástico', 'vidro', 'metal'];
+const colors = [['#6dbaff','#d3f1ff'],['#fb658f','#ffc0d6'],['#48e6a5','#aaffd8'],['#ffc356','#fff3a7']];
+const byId = id => document.getElementById(id);
+const [scoreText,timeText,bestText,itemText,feedback,bar,start] =
+ ['score','time','best','item','feedback','bar','start'].map(byId);
+const bins = Array.from(document.querySelectorAll('.bin'));
+const ctx = byId('sprite').getContext('2d');
+let deck = [], item, score = 0, misses = 0, best = 0, deadline = 0, timer, advance, playing = false, waiting = false;
+try { best = Number(localStorage.getItem('reciclagem-recorde')) || 0; } catch {}
+const digits = n => String(n).padStart(2,'0');
+bestText.textContent = digits(best);
+
+function draw(shape, palette) {
+ const [color, light] = palette;
+ function rect(x,y,w,h,fill) { ctx.fillStyle = fill; ctx.fillRect(x,y,w,h); }
+ function block(x,y,w,h) {
+  rect(x-2,y,w+4,h,'#100b27'); rect(x,y-2,w,h+4,'#100b27');
+  rect(x,y,w,h,color); rect(x+2,y+2,w-4,3,light);
+  rect(x+2,y+5,2,h-8,light); rect(x+3,y+h-3,w-5,2,'#281746');
+ }
+ ctx.clearRect(0,0,48,46);
+ rect(9,41,30,3,'#150e30'); rect(14,40,20,1,'#bd7aff');
+ rect(7,12,3,1,light); rect(8,11,1,3,light);
+ rect(38,25,5,1,light); rect(40,23,1,5,light);
+ switch(shape) {
+  case 'sheet':
+   block(13,8,22,30);
+   for(let y=17;y<=30;y+=4) rect(19,y,12,1,'#28487d');
+   break;
+  case 'box':
+   block(10,15,28,23); rect(21,15,6,12,light); rect(29,30,5,3,'#28487d');
+   break;
+  case 'bottle':
+   block(20,4,8,12); rect(20,4,8,4,light); block(15,15,18,23);
+   rect(16,23,16,7,light); rect(21,25,6,3,color);
+   break;
+  case 'jar':
+   block(13,14,22,24); rect(12,10,24,6,light); rect(17,23,14,8,light); rect(22,25,4,4,color);
+   break;
+  case 'cup':
+   block(14,16,20,22); rect(11,14,26,4,light); rect(19,23,10,6,light);
+   break;
+  case 'can':
+   block(15,9,18,29); rect(16,12,16,3,'#e6e2fc'); rect(19,20,10,9,light); rect(22,21,4,7,color);
+   break;
+  case 'foil':
+   block(12,20,23,14); block(18,12,13,18); rect(17,27,13,3,light); rect(23,18,8,2,'#ba844c');
+   break;
+  default:
+   const bolt = ['00001110','00011100','00111000','01111111','00011110','00111000','01100000','10000000'];
+   bolt.forEach((row,y)=>[...row].forEach((pixel,x)=>{if(pixel==='1')rect(8+x*4,5+y*4,4,4,y<3?light:color);}));
+ }
+}
+
+function nextItem() {
+ if (!deck.length) {
+  deck = items.slice();
+  for (let i = deck.length - 1; i > 0; i--) {
+   const j = Math.floor(Math.random() * (i+1));
+   [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  if (deck[deck.length-1] === item) [deck[0], deck[deck.length-1]] = [deck[deck.length-1], deck[0]];
+ }
+ item = deck.pop();
+ itemText.textContent = item[0];
+ draw(item[2], colors[Math.floor(Math.random() * colors.length)]);
+}
+
+function tick() {
+ const remaining = Math.max(0, deadline - Date.now());
+ timeText.textContent = '00:' + digits(Math.ceil(remaining / 1000));
+ bar.style.transform = 'scaleX(' + remaining / 45000 + ')';
+ if (remaining) return;
+ clearInterval(timer);
+ clearTimeout(advance);
+ playing = false;
+ waiting = false;
+ bins.forEach(button => { button.disabled = true; button.classList.remove('hit'); });
+ const newBest = score > best;
+ if (newBest) {
+  best = score;
+  bestText.textContent = digits(best);
+  try { localStorage.setItem('reciclagem-recorde', best); } catch {}
+ }
+ draw('bolt', colors[3]);
+ itemText.textContent = 'Tempo esgotado!';
+ feedback.className = newBest ? 'good' : '';
+ feedback.textContent = score + (score === 1 ? ' acerto' : ' acertos') + ' · ' + misses + (misses === 1 ? ' erro' : ' erros') + (newBest ? ' · Novo recorde!' : '');
+ start.textContent = 'Jogar de novo';
+ start.hidden = false;
+ start.focus();
+}
+
+function choose(index) {
+ if (!playing || waiting) return;
+ if (Date.now() >= deadline) { tick(); return; }
+ const correct = index === item[1];
+ if (correct) score++;
+ else misses++;
+ scoreText.textContent = digits(score);
+ feedback.className = correct ? 'good' : 'bad';
+ feedback.textContent = correct ? 'Acertou! +1 ponto' : item[0] + ' vai na lixeira de ' + categories[item[1]] + '.';
+ bins[item[1]].classList.add('hit');
+ waiting = true;
+ advance = setTimeout(() => {
+  bins.forEach(button => button.classList.remove('hit'));
+  waiting = false;
+  if (playing) nextItem();
+ }, correct ? 240 : 1050);
+}
+
+start.addEventListener('click', () => {
+ score = 0;
+ misses = 0;
+ deck = [];
+ scoreText.textContent = '00';
+ feedback.className = '';
+ feedback.textContent = 'Escolha uma lixeira.';
+ deadline = Date.now() + 45000;
+ playing = true;
+ start.hidden = true;
+ bins.forEach(button => { button.disabled = false; });
+ bins[0].focus();
+ nextItem();
+ tick();
+ timer = setInterval(tick, 100);
+});
+bins.forEach((button,index) => button.addEventListener('click', () => choose(index)));
+document.addEventListener('keydown', event => {
+ if (!event.repeat && !event.ctrlKey && !event.altKey && !event.metaKey && /^[1-4]$/.test(event.key)) choose(Number(event.key)-1);
+});
+draw('bolt', colors[3]);
+</script>
+</body>
+</html>
